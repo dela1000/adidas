@@ -72,12 +72,9 @@ router.post('/removeWishItem', function(req, res) {
         let indexToDelete = _.findIndex(wishList, function(wishItem) { 
             return wishItem.id === Number(req.body.id); 
         });
-        console.log("wishList[indexToDelete]: ", wishList[indexToDelete])
         if (indexToDelete > -1) {
             wishList[indexToDelete].active = false;
         }
-
-        console.log("wishList[indexToDelete]: ", wishList[indexToDelete])
 
         fs.writeFile(dbFile, JSON.stringify(wishList, null, 4), function(err) {
             if (err) {

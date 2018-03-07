@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "webpack",
-    "start": "webpack-dev-server --open"
+    "start": "concurrently \"webpack-dev-server --open\" \"nodemon server.js\""
   },
   "keywords": [],
   "author": "",
@@ -26,6 +26,7 @@
     "webpack-dev-server": "^3.1.0"
   },
   "dependencies": {
+    "concurrently": "^3.5.1",
     "cors": "^2.8.4",
     "lodash": "^4.17.5",
     "moment": "^2.21.0"
