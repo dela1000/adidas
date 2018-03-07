@@ -3,20 +3,27 @@ import ReactDOM from 'react-dom';
 import { NavBar } from './NavBar.js';
 
 let wishlist;
-let dataFetched;
-let searchData;
+let wishlistData;
+let cardsData;
+
+let pointer = {
+  cursor:"pointer" 
+}
 
 class Wishlist extends React.Component {
-    //Create table items. Used by generateList, addItemToWishlist, and deleteItem functions
+    //Create table items. Used by loadList, addItemToWishlist, and deleteItem functions
     createWishListTable (data) {
+          wishlistData = data;
           wishlist = data.map((item, index) => {
           return (
             <tr scope="row" key={index}>
               <td>
-                <img className="rounded-circle" src={item.image}/>
+                <a style={pointer} href={item.url} target="_blank">
+                  <img className="rounded-circle" src={item.image}/>
+                </a>
               </td>
               <td>
-                <div className="font-weight-bold">
+                <div className="font-weight-bold text-secondary">
                   {item.name}
                 </div>
                 <small>
@@ -27,7 +34,7 @@ class Wishlist extends React.Component {
               <td>{item.rating}</td>
               <td>{item.reviews}</td>
               <td onClick={this.deleteItem.bind(this, item)}>
-                <a className="font-weight-bold text-danger mx-auto">
+                <a className="font-weight-bold text-danger" style={pointer}>
                   X
                 </a>
               </td>
@@ -38,7 +45,7 @@ class Wishlist extends React.Component {
     }
 
     //Load list as is from the db
-    generateList() {
+    loadList() {
         $.ajax({
             url: "http://localhost:3000/retrieveWishlist",
             dataType: 'json',
@@ -51,7 +58,6 @@ class Wishlist extends React.Component {
                 console.error(this.props.url, status, err.toString());
             }.bind(this)
         });
-        this.forceUpdate();
     }
 
     //Input constructor
@@ -65,26 +71,59 @@ class Wishlist extends React.Component {
 
     //Retrieve dropdown selection options from Adidas Search API
     inputFieldString(event) {
+
         if(event){
             this.setState({value: event.target.value});
-
+            if(!event.target.value){
+                cardsData = null;
+                this.forceUpdate();
+                return;
+            }
             $.ajax({
                 url: "https://www.adidas.co.uk/api/suggestions/" + event.target.value,
                 dataType: 'json',
                 success: function(data) {
-                  dataFetched = data.products;
-                  searchData = data.products.map((item, index) => {
-                    return (
-                      <option key={index} value={item.suggestion} data-load={item}>
-                        {item.suggestion} - {item.subTitle} &ensp; ${item.standardPrice}
-                      </option> 
-                    )
-                  })
-                  this.forceUpdate();
+                    if(data.products.length){
+                      cardsData = data.products.map((item, index) => {
+                        return (
+                          <div key={index} value={item.suggestion} className="col-sm-3 text-center" onClick={this.addItemToWishlist.bind(this, item)}>
+                            <div className="card-body" style={pointer}>
+                              <div>
+                                <img  className="rounded-circle" src={item.image}/>
+                              </div>
+                              <div className="font-weight-bold">
+                                {item.suggestion}
+                              </div>
+                              <div>
+                                <small>
+                                  {item.subTitle}
+                                </small>
+                              </div>
+                              <div>
+                                ${item.standardPrice}
+                              </div>
+                            </div>
+                          </div> 
+                        )
+                      })
+                    } else {
+                        let noItem = [{text: "This search does not find any items"}]
 
+                        cardsData = noItem.map((item, index) => {
+                            return (
+                              <div key={index} className="col text-center">
+                                {item.text}
+                              </div>
+                            )
+                        })
+                        
+                    }
+                    this.forceUpdate();
                 }.bind(this),
                 error: function(xhr, status, err) {
-                  console.error(this.props.url, status, err.toString());
+                  cardsData = null;
+                  this.forceUpdate();
+                  console.error("ERROR", this.props.url, status, err.toString());
                 }.bind(this)
             });
             this.forceUpdate();
@@ -94,32 +133,42 @@ class Wishlist extends React.Component {
     }
 
     //Add item to wishlist 
-    addItemToWishlist(event) {
-        let itemDetailsSelected = _.filter(dataFetched, (item) => {
-            return item.suggestion === this.state.value
-        })
+    addItemToWishlist(item) {
 
-        if(itemDetailsSelected.length !== 0){
-            event.preventDefault();
-            $.ajax({
-                type: "POST",
-                url: "http://localhost:3000/addWishItem",
-                dataType: 'json',
-                data: {
-                    user_id: 65,
-                    item: itemDetailsSelected[0]
-                },
-                success: function(data) {
-                    wishlist = this.createWishListTable(data)
-                    this.forceUpdate();
-                    this.inputFieldString(null);
-                    return wishlist;
-                }.bind(this),
-                error: function(xhr, status, err) {
-                    console.error(this.props.url, status, err.toString());
-                }.bind(this)
-            });
-        }
+      var match = _.filter(wishlistData, _.matches({name: item.suggestion, url: item.url, image: item.image}));
+
+      if(match.length){
+        let itemAlreadyPresent = [{text: "This item is already on your wishlist"}]
+        cardsData = itemAlreadyPresent.map((item, index) => {
+            return (
+              <div key={index} className="col text-center">
+                {item.text}
+              </div>
+            )
+        })
+        this.inputFieldString(null);
+        this.forceUpdate();
+        return;
+      }
+
+      $.ajax({
+          type: "POST",
+          url: "http://localhost:3000/addWishItem",
+          dataType: 'json',
+          data: {
+              user_id: 65,
+              item: item
+          },
+          success: function(data) {
+              wishlist = this.createWishListTable(data)
+              cardsData = null;
+              this.forceUpdate();
+              this.inputFieldString(null);
+          }.bind(this),
+          error: function(xhr, status, err) {
+              console.error(this.props.url, status, err.toString());
+          }.bind(this)
+      });
     }
 
     //Delete item from wishlist
@@ -136,7 +185,6 @@ class Wishlist extends React.Component {
               wishlist = this.createWishListTable(data)
               this.forceUpdate();
               this.inputFieldString(null);
-              return wishlist;
           }.bind(this),
           error: function(xhr, status, err) {
               console.error(this.props.url, status, err.toString());
@@ -145,28 +193,21 @@ class Wishlist extends React.Component {
     }
 
     render() {
+      if(!wishlistData){
+        this.loadList();
+      }
       return (
         <div>
           <div className="card">
             <div className="card-body">
-              <form className="form-group" onSubmit={this.addItemToWishlist}>
                 <label>Add an item to your wishlist:</label>
-                <input list="searchItems" name="search" className="form-control" type="text" value={this.state.value} maxLength="50" required onChange={this.inputFieldString} />
-                <datalist id="searchItems">
-                  {searchData}
-                </datalist>
+                <input list="searchItems" name="search" className="form-control" type="text" autoComplete="off" value={this.state.value} maxLength="50" required onChange={this.inputFieldString} />
                 <br />
-                <div>
-                  <input className="btn btn-info float-right" type="submit" value="Submit" />
+                <div className="row">
+                  {cardsData}
                 </div>
-              </form>
             </div>
           </div>
-          <br />
-          <button className="btn btn-outline-success" onClick={this.generateList.bind(this)}>
-            Get Wishlist
-          </button>
-          <br />
           <br />
           <table className="table table-hover">
             <thead>
