@@ -18,9 +18,11 @@ class Wishlist extends React.Component {
           return (
             <tr scope="row" key={index}>
               <td>
-                <a style={pointer} href={item.url} target="_blank">
-                  <img className="rounded-circle" src={item.image}/>
-                </a>
+                <center>
+                  <a style={pointer} href={item.url} target="_blank">
+                    <img className="rounded-circle" src={item.image}/>
+                  </a>
+                </center>
               </td>
               <td>
                 <div className="font-weight-bold text-secondary">
@@ -30,10 +32,22 @@ class Wishlist extends React.Component {
                   {item.subTitle}
                 </small>
               </td>
-              <td>${item.standardPrice}</td>
-              <td>{item.rating}</td>
-              <td>{item.reviews}</td>
-              <td onClick={this.deleteItem.bind(this, item)}>
+              <td>
+                <center>
+                  ${item.standardPrice}
+                </center>
+              </td>
+              <td>
+                <center>
+                  {item.rating}
+                </center>
+              </td>
+              <td>
+                <center>
+                  {item.reviews}
+                </center>
+              </td>
+              <td onClick={this.deleteItem.bind(this, item)} align="center">
                 <a className="font-weight-bold text-danger" style={pointer}>
                   X
                 </a>
@@ -71,14 +85,8 @@ class Wishlist extends React.Component {
 
     //Retrieve dropdown selection options from Adidas Search API
     inputFieldString(event) {
-
         if(event){
             this.setState({value: event.target.value});
-            if(!event.target.value){
-                cardsData = null;
-                this.forceUpdate();
-                return;
-            }
             $.ajax({
                 url: "https://www.adidas.co.uk/api/suggestions/" + event.target.value,
                 dataType: 'json',
@@ -107,16 +115,7 @@ class Wishlist extends React.Component {
                         )
                       })
                     } else {
-                        let noItem = [{text: "This search does not find any items"}]
-
-                        cardsData = noItem.map((item, index) => {
-                            return (
-                              <div key={index} className="col text-center">
-                                {item.text}
-                              </div>
-                            )
-                        })
-                        
+                        cardsData = emptyCards("This search does not find any items")
                     }
                     this.forceUpdate();
                 }.bind(this),
@@ -137,15 +136,10 @@ class Wishlist extends React.Component {
 
       var match = _.filter(wishlistData, _.matches({name: item.suggestion, url: item.url, image: item.image}));
 
-      if(match.length){
-        let itemAlreadyPresent = [{text: "This item is already on your wishlist"}]
-        cardsData = itemAlreadyPresent.map((item, index) => {
-            return (
-              <div key={index} className="col text-center">
-                {item.text}
-              </div>
-            )
-        })
+      if(!_.isEmpty(match)){
+
+        cardsData = emptyCards("This item is already on your wishlist")
+        
         this.inputFieldString(null);
         this.forceUpdate();
         return;
@@ -212,12 +206,24 @@ class Wishlist extends React.Component {
           <table className="table table-hover">
             <thead>
               <tr>
-                <th scope="col" align="center">Image</th>
-                <th scope="col">Name</th>
-                <th scope="col">Price</th>
-                <th scope="col">Rating</th>
-                <th scope="col">Reviews</th>
-                <th scope="col" align="center">Remove</th>
+                <th scope="col">
+                  <center>Image</center>
+                </th>
+                <th scope="col">
+                  <center>Name</center>
+                </th>
+                <th scope="col">
+                  <center>Price</center>
+                </th>
+                <th scope="col">
+                  <center>Rating</center>
+                </th>
+                <th scope="col">
+                  <center>Reviews</center>
+                </th>
+                <th scope="col">
+                  <center>Remove</center>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -229,5 +235,19 @@ class Wishlist extends React.Component {
       )
     }
 };
+
+// Helper function
+let emptyCards = (text) => {
+    let input = [{text: text}]
+    let data = input.map((item, index) => {
+        return (
+          <div key={index} className="col text-center">
+            {item.text}
+          </div>
+        )
+    })
+    return data;
+}
+
 
 ReactDOM.render(<Wishlist />, document.getElementById('app'))
